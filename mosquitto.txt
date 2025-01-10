@@ -1,0 +1,2 @@
+mosquitto_sub -t "test/topic"
+mosquitto_pub -t "test/topic" -m "Hola MQTT"
