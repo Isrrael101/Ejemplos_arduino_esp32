@@ -1,167 +1,133 @@
-# Tutorial: Exploración del ESP32 desde Terminal VSCode
+# Guía para usar rshell con ESP32 en Windows
 
-## 1. Preparación del Entorno
+## 1. Verificar entorno
+```powershell
+# Activar entorno virtual
+.\entorno\Scripts\activate
 
-### Instalar Herramientas Necesarias
-Abre el terminal en VSCode (Ctrl + Shift + ñ) y ejecuta:
-```bash
-pip install esptool  # Para flashear el ESP32
-pip install rshell   # Para interactuar con MicroPython
+# Verificar versión de Python
+python --version
+# Debería mostrar: Python 3.9.13
 ```
 
-### Verificar Instalación
-```bash
-esptool.py version
+## 2. Verificar instalación de rshell
+```powershell
+# Instalar si no está instalado
+pip install rshell
+
+# Verificar instalación
 rshell --version
 ```
 
-## 2. Conectar al ESP32
-
-### Identificar Puerto
-- Windows: `COM1`, `COM2`, etc. (ver en Administrador de dispositivos)
-- Linux: `/dev/ttyUSB0` o similar
-- Mac: `/dev/cu.SLAB_USBtoUART`
-
-### Conectar usando rshell
-```bash
-# Windows
-rshell -p COM5 -b 115200
-
-# Linux
-rshell -p /dev/ttyUSB0 -b 115200
-
-# Mac
-rshell -p /dev/cu.SLAB_USBtoUART -b 115200
+## 3. Conectar al ESP32
+```powershell
+# Reemplaza COM5 con tu puerto
+rshell -p COM5 --buffer-size 32
 ```
 
-## 3. Comandos Básicos en rshell
+## 4. Comandos dentro de rshell
 
-### Navegación y Exploración
+### Ver archivos en ESP32:
 ```bash
-help          # Ver todos los comandos disponibles
-boards        # Mostrar dispositivos conectados
-ls            # Listar archivos en directorio actual
-ls /pyboard   # Listar archivos en ESP32
-cd /pyboard   # Cambiar al directorio del ESP32
+ls /pyboard
 ```
 
-### Manejo de Archivos
+### Copiar archivos al ESP32:
 ```bash
-cp archivo.py /pyboard/  # Copiar archivo al ESP32
-rm /pyboard/archivo.py   # Borrar archivo del ESP32
-cat /pyboard/main.py     # Ver contenido de un archivo
+cp boot.py /pyboard/
+cp main.py /pyboard/
 ```
 
-## 4. Usar el REPL
-
-### Entrar al REPL
+### Entrar al REPL:
 ```bash
-repl          # Entrar al REPL de MicroPython
+repl
 ```
 
-### Comandos Útiles en REPL
+### Comandos útiles REPL:
+- Ctrl+C: Interrumpir programa
+- Ctrl+D: Soft reset
+- Ctrl+X: Salir del REPL
+- Ctrl+E: Entrar en modo pegado
+
+### Salir de rshell:
+```bash
+exit
+```
+
+## 5. Script de automatización
+Crear archivo `deploy.ps1`:
+```powershell
+# Contenido de deploy.ps1
+$PORT = "COM5"  # Cambia al puerto que uses
+
+Write-Host "Copiando archivos al ESP32..."
+rshell -p $PORT --buffer-size 32 "cp boot.py /pyboard/; cp main.py /pyboard/"
+
+Write-Host "Archivos copiados. Iniciando REPL..."
+rshell -p $PORT --buffer-size 32 repl
+```
+
+## 6. Ejemplo completo de uso
+```powershell
+# 1. Activar entorno virtual
+.\entorno\Scripts\activate
+
+# 2. Verificar conexión
+rshell -p COM5 --buffer-size 32 ls /pyboard
+
+# 3. Copiar archivos
+rshell -p COM5 --buffer-size 32 "cp boot.py /pyboard/; cp main.py /pyboard/"
+
+# 4. Verificar archivos copiados
+rshell -p COM5 --buffer-size 32 ls /pyboard
+
+# 5. Entrar al REPL
+rshell -p COM5 --buffer-size 32 repl
+```
+
+## 7. Solución de problemas comunes
+
+### Error "Could not enter raw repl":
+1. Desconecta y reconecta el ESP32
+2. Espera unos segundos
+3. Intenta nuevamente
+
+### Error "Port is busy":
+1. Cierra todas las conexiones al puerto
+2. Cierra VSCode
+3. Desconecta y reconecta el ESP32
+
+### Error "Permission denied":
+1. Ejecuta PowerShell como administrador
+2. Verifica que el puerto COM es correcto
+
+## 8. Tips adicionales
+
+### Ver contenido de un archivo en ESP32:
+```bash
+cat /pyboard/main.py
+```
+
+### Eliminar archivo del ESP32:
+```bash
+rm /pyboard/main.py
+```
+
+### Crear directorio:
+```bash
+mkdir /pyboard/lib
+```
+
+### Verificar memoria libre:
 ```python
-# Información del Sistema
-import sys
-print(sys.implementation)
-print(sys.platform)
-
-# Ver Módulos Disponibles
-help('modules')
-
-# Información de Memoria
+# En el REPL:
 import gc
-print(gc.mem_free())  # Memoria libre
-gc.collect()         # Limpiar memoria
+gc.mem_free()
 ```
 
-### Ejemplos Prácticos
-
-#### Control de LED
+### Reiniciar ESP32:
 ```python
-from machine import Pin
-import time
-
-# Configurar LED
-led = Pin(2, Pin.OUT)
-
-# Encender/Apagar
-led.value(1)    # Encender
-led.value(0)    # Apagar
-
-# Parpadeo
-for i in range(5):
-    led.value(1)
-    time.sleep(0.5)
-    led.value(0)
-    time.sleep(0.5)
-```
-
-#### Lectura ADC
-```python
-from machine import ADC, Pin
-
-# Configurar ADC
-adc = ADC(Pin(36))
-adc.atten(ADC.ATTN_11DB)
-adc.width(ADC.WIDTH_12BIT)
-
-# Leer valores
-valor = adc.read()
-print(valor)
-
-# Lectura continua
-import time
-while True:
-    print(adc.read())
-    time.sleep(0.5)
-```
-
-## 5. Atajos y Comandos Especiales
-
-### En rshell
-- `Ctrl + D`: Salir del REPL
-- `Ctrl + X`: Salir de rshell
-- `Ctrl + C`: Interrumpir operación actual
-
-### En REPL
-- `Ctrl + C`: Interrumpir programa
-- `Ctrl + D`: Soft reset
-- `Ctrl + E`: Entrar en modo pegado
-- `Ctrl + A`: Ir al inicio de la línea
-- `Ctrl + E`: Ir al final de la línea
-
-## 6. Solución de Problemas
-
-### Error de Conexión
-Si no puedes conectar:
-1. Verifica el puerto correcto
-2. Desconecta y reconecta el ESP32
-3. Cierra y vuelve a abrir VSCode
-4. Intenta con una velocidad diferente (e.g., `-b 9600`)
-
-### REPL No Responde
-1. Presiona `Ctrl + C` varias veces
-2. Si no funciona, `Ctrl + D` para reset
-3. Si aún no responde, desconecta y reconecta el ESP32
-
-### Errores de Permiso (Linux/Mac)
-```bash
-sudo chmod 666 /dev/ttyUSB0  # Linux
-sudo chmod 666 /dev/cu.SLAB_USBtoUART  # Mac
-```
-
-## 7. Tips Adicionales
-
-### Guardar Configuración
-Crea un archivo `.rshell` en tu directorio home:
-```
-PYBOARD_DEVICE = '/dev/ttyUSB0'
-EDITOR = 'code'
-```
-
-### Automatizar Tareas
-Crea scripts de Python y ejecútalos:
-```bash
-rshell -p COM5 cp script.py /pyboard/main.py
+# En el REPL:
+import machine
+machine.reset()
 ```
