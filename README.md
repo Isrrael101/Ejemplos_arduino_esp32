@@ -71,7 +71,8 @@ rshell -p $PORT --buffer-size 32 repl
 ```powershell
 # 1. Activar entorno virtual
 .\entorno\Scripts\activate
-
+# en gitbash
+source .\entorno\Scripts\activate
 # 2. Verificar conexión
 rshell -p COM5 --buffer-size 32 ls /pyboard
 
